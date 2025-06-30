@@ -1,0 +1,256 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+-- Настройки
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Size = 20
+local CurrentColor = BrickColor.new("Really red")
+local IsMinimized = false
+
+-- Создание основного GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HitboxControlGui"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true
+ScreenGui.IgnoreGuiInset = true
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 300, 0, 250)
+Frame.Position = UDim2.new(0.5, -150, 1, 0) -- Начальная позиция за пределами экрана
+Frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Frame.BackgroundTransparency = 0.2
+Frame.Active = true
+Frame.Draggable = true
+Frame.Visible = true
+Frame.Parent = ScreenGui
+
+-- Кнопка для свёрнутого состояния
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0, 50) -- Позиция в левом верхнем углу, ниже интерфейса Roblox
+ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleButton.Text = "Hitbox"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextScaled = true
+ToggleButton.Visible = false
+ToggleButton.Active = true
+ToggleButton.Parent = ScreenGui
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundTransparency = 1
+Title.Text = "Hitbox Control"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = Frame
+
+-- Текстовое поле для размера
+local SizeLabel = Instance.new("TextLabel")
+SizeLabel.Size = UDim2.new(1, -20, 0, 30)
+SizeLabel.Position = UDim2.new(0, 10, 0, 60)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.Text = "Size (5-50):"
+SizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeLabel.TextScaled = true
+SizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+SizeLabel.Parent = Frame
+
+local SizeInput = Instance.new("TextBox")
+SizeInput.Size = UDim2.new(0, 100, 0, 30)
+SizeInput.Position = UDim2.new(0, 170, 0, 60)
+SizeInput.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+SizeInput.Text = tostring(Size)
+SizeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeInput.TextScaled = true
+SizeInput.Parent = Frame
+
+-- Кнопка выбора цвета
+local ColorButton = Instance.new("TextButton")
+ColorButton.Size = UDim2.new(1, -20, 0, 30)
+ColorButton.Position = UDim2.new(0, 10, 0, 100)
+ColorButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+ColorButton.Text = "Select Color"
+ColorButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ColorButton.TextScaled = true
+ColorButton.Parent = Frame
+
+-- Мини-меню для выбора цвета
+local ColorMenu = Instance.new("Frame")
+ColorMenu.Size = UDim2.new(0, 200, 0, 300)
+ColorMenu.Position = UDim2.new(0, 310, 0, 0)
+ColorMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ColorMenu.BackgroundTransparency = 0.2
+ColorMenu.Visible = false
+ColorMenu.Parent = Frame
+
+local colors = {
+    {Name = "Red", BrickColor = BrickColor.new("Really red")},
+    {Name = "Blue", BrickColor = BrickColor.new("Really blue")},
+    {Name = "Green", BrickColor = BrickColor.new("Really green")},
+    {Name = "Yellow", BrickColor = BrickColor.new("New Yeller")},
+    {Name = "Cyan", BrickColor = BrickColor.new("Cyan")},
+    {Name = "Magenta", BrickColor = BrickColor.new("Magenta")},
+    {Name = "Orange", BrickColor = BrickColor.new("Neon orange")},
+    {Name = "White", BrickColor = BrickColor.new("White")}
+}
+
+for i, color in ipairs(colors) do
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0.9, 0, 0, 30)
+    Button.Position = UDim2.new(0.05, 0, 0, 10 + (i-1)*35)
+    Button.BackgroundColor3 = color.BrickColor.Color
+    Button.Text = color.Name
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextScaled = true
+    Button.Parent = ColorMenu
+    Button.MouseButton1Click:Connect(function()
+        CurrentColor = color.BrickColor
+        ColorButton.BackgroundColor3 = color.BrickColor.Color
+        ColorMenu.Visible = false
+    end)
+end
+
+-- Кнопка сворачивания
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.new(1, -20, 0, 30)
+MinimizeButton.Position = UDim2.new(0, 10, 0, 140)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+MinimizeButton.Text = "Minimize"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextScaled = true
+MinimizeButton.Parent = Frame
+
+-- Кнопка выхода
+local ExitButton = Instance.new("TextButton")
+ExitButton.Size = UDim2.new(0, 30, 0, 30)
+ExitButton.Position = UDim2.new(1, -40, 0, 10)
+ExitButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ExitButton.Text = "X"
+ExitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExitButton.TextScaled = true
+ExitButton.Parent = Frame
+
+-- Логика текстового поля
+SizeInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local input = tonumber(SizeInput.Text)
+        if input then
+            Size = math.clamp(input, 5, 50) -- Ограничение размера 5-50
+            SizeInput.Text = tostring(math.floor(Size))
+            -- Немедленное обновление хитбоксов
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    pcall(function()
+                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.Size = Vector3.new(Size, Size, Size)
+                            hrp.Transparency = 0.7
+                            hrp.BrickColor = CurrentColor
+                            hrp.Material = Enum.Material.Neon
+                            hrp.CanCollide = false
+                        end
+                    end)
+                end
+            end
+        else
+            SizeInput.Text = tostring(math.floor(Size)) -- Вернуть старое значение при неверном вводе
+        end
+    end
+end)
+
+-- Логика кнопки выбора цвета
+ColorButton.MouseButton1Click:Connect(function()
+    ColorMenu.Visible = not ColorMenu.Visible
+end)
+
+-- Логика сворачивания
+MinimizeButton.MouseButton1Click:Connect(function()
+    if IsMinimized then
+        -- Разворачивание
+        local tween = TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 300, 0, 250),
+            Position = UDim2.new(0.5, -150, 0.5, -125)
+        })
+        tween:Play()
+        Frame.Visible = true
+        ToggleButton.Visible = false
+        MinimizeButton.Text = "Minimize"
+        IsMinimized = false
+    else
+        -- Сворачивание
+        local tween = TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 50, 0, 50),
+            Position = UDim2.new(0, 10, 0, 50)
+        })
+        tween:Play()
+        task.wait(0.3)
+        Frame.Visible = false
+        ToggleButton.Visible = true
+        MinimizeButton.Text = "Maximize"
+        IsMinimized = true
+    end
+end)
+
+-- Логика кнопки ToggleButton
+ToggleButton.MouseButton1Click:Connect(function()
+    if IsMinimized then
+        local tween = TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 300, 0, 250),
+            Position = UDim2.new(0.5, -150, 0.5, -125)
+        })
+        tween:Play()
+        Frame.Visible = true
+        ToggleButton.Visible = false
+        MinimizeButton.Text = "Minimize"
+        IsMinimized = false
+    end
+end)
+
+-- Логика выхода
+ExitButton.MouseButton1Click:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Size = Vector3.new(2, 2, 1) -- Стандартный размер
+                    hrp.Transparency = 0
+                    hrp.BrickColor = BrickColor.new("Medium stone grey")
+                    hrp.Material = Enum.Material.Plastic
+                    hrp.CanCollide = true
+                end
+            end)
+        end
+    end
+    ScreenGui:Destroy()
+end)
+
+-- Основной цикл обновления хитбоксов
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Size = Vector3.new(Size, Size, Size)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = CurrentColor
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end
+            end)
+        end
+    end
+end)
+
+-- Анимация появления меню
+task.wait(0.1)
+Frame.Position = UDim2.new(0.5, -150, 1, 0)
+Frame.Visible = true
+local tween = TweenService:Create(Frame, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -150, 0.5, -125)})
+tween:Play()
