@@ -1,0 +1,183 @@
+local player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local isGymRunning = false
+local isFarmRunning = false
+
+local gymPos = Vector3.new(147.4, 19.6, -209.4)
+local farmPos1 = Vector3.new(-129.1, 24.6, 6931.1)
+local farmPos2 = Vector3.new(-92.26, 14.85, 6212.14)
+local precision = 1
+
+local eggTeleports = {
+    {pos = Vector3.new(57.6, 28.5, -215.4), name = "Back Alley Pets", price = "25"},
+    {pos = Vector3.new(41.9, 28.5, -26.6), name = "Training Pets", price = "500"},
+    {pos = Vector3.new(42.5, 28.5, 218.0), name = "Food Pets", price = "2.50k"},
+    {pos = Vector3.new(41.6, 28.5, 479.3), name = "Arcade Pets", price = "10k"},
+    {pos = Vector3.new(41.7, 28.5, 777.9), name = "Farm Pets", price = "500k"},
+    {pos = Vector3.new(365.9, 32.0, 1225.6), name = "Medieval Pets", price = "1M"},
+    {pos = Vector3.new(325.8, 33.7, 1838.9), name = "Steampunk Pets", price = "2M"},
+    {pos = Vector3.new(344.7, 35.5, 2676.9), name = "Disco Pets", price = "5M"},
+    {pos = Vector3.new(506.4, 25.6, 3453.8), name = "Space Pets", price = "10M"},
+    {pos = Vector3.new(351.8, 25.6, 4460.0), name = "Candy Land Pets", price = "15M"},
+    {pos = Vector3.new(-179.4, 25.6, 5344.0), name = "Science Pets", price = "25M"},
+    {pos = Vector3.new(481.7, 25.0, 6171.5), name = "Tropical Pets", price = "50M"},
+}
+
+local function teleportTo(pos)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    root.CFrame = CFrame.new(pos)
+end
+
+local function isAtPosition(pos)
+    local char = player.Character
+    if not char then return false end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+    return (root.Position - pos).Magnitude <= precision
+end
+
+local function gymPump(toggle)
+    isGymRunning = toggle
+    if toggle then
+        teleportTo(gymPos)
+        task.wait(0.2)
+        task.spawn(function()
+            local cam = workspace.CurrentCamera
+            local centerX, centerY = cam.ViewportSize.X/2, cam.ViewportSize.Y/2
+            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, nil, 0)
+            task.wait(2)
+            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, nil, 0)
+            while isGymRunning do
+                VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, nil, 0)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, nil, 0)
+                task.wait(0.5)
+            end
+        end)
+    end
+end
+
+local function autoFarm(toggle)
+    isFarmRunning = toggle
+    task.spawn(function()
+        while isFarmRunning do
+            repeat
+                teleportTo(farmPos1)
+                task.wait(0.05)
+            until isAtPosition(farmPos1) or not isFarmRunning
+            if not isFarmRunning then break end
+
+            teleportTo(farmPos2)
+            task.wait(0.2)
+
+            local cam = workspace.CurrentCamera
+            local centerX, centerY = cam.ViewportSize.X/2, cam.ViewportSize.Y/2
+            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, nil, 0)
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, nil, 0)
+
+            task.wait(1)
+        end
+    end)
+end
+
+local function createEggMenu(parent)
+    local eggGui = Instance.new("Frame", parent)
+    eggGui.Name = "EggMenu"
+    eggGui.Size = UDim2.new(0, 200, 0, 300)
+    eggGui.Position = UDim2.new(0, 300, 0, 100)
+    eggGui.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    eggGui.BorderSizePixel = 0
+    eggGui.Visible = false
+    eggGui.Active = true
+    eggGui.Draggable = true
+
+    local closeButton = Instance.new("TextButton", eggGui)
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.Position = UDim2.new(1, -30, 0, 5)
+    closeButton.Text = "X"
+    closeButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    closeButton.TextColor3 = Color3.new(1,1,1)
+    closeButton.MouseButton1Click:Connect(function()
+        eggGui.Visible = false
+    end)
+
+    local layout = Instance.new("UIListLayout", eggGui)
+    layout.Padding = UDim.new(0, 5)
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5)
+
+    for _, egg in ipairs(eggTeleports) do
+        local btn = Instance.new("TextButton", eggGui)
+        btn.Size = UDim2.new(1, -10, 0, 30)
+        btn.Text = egg.name .. " - " .. egg.price
+        btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.MouseButton1Click:Connect(function()
+            teleportTo(egg.pos)
+        end)
+    end
+
+    return eggGui
+end
+
+local function createMenu()
+    local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+    gui.Name = "FarmGymGui"
+    gui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 160, 0, 120)
+    frame.Position = UDim2.new(0, 100, 0, 100)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+
+    local layout = Instance.new("UIListLayout", frame)
+    layout.Padding = UDim.new(0, 5)
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local function createButton(text, callback)
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(1, -10, 0, 30)
+        btn.Text = text .. ": OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        local state = false
+        btn.MouseButton1Click:Connect(function()
+            state = not state
+            btn.Text = text .. (state and ": ON" or ": OFF")
+            btn.BackgroundColor3 = state and Color3.fromRGB(40, 150, 40) or Color3.fromRGB(60, 60, 60)
+            callback(state)
+        end)
+    end
+
+    createButton("GymPump", gymPump)
+    createButton("AutoFarm", autoFarm)
+
+    local eggMenu = createEggMenu(gui)
+    local eggBtn = Instance.new("TextButton", frame)
+    eggBtn.Size = UDim2.new(1, -10, 0, 30)
+    eggBtn.Text = "Egg Teleports"
+    eggBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    eggBtn.TextColor3 = Color3.new(1,1,1)
+    eggBtn.MouseButton1Click:Connect(function()
+        eggMenu.Visible = not eggMenu.Visible
+    end)
+end
+
+createMenu()
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "PORNO",
+    Text = "Menu loaded!",
+    Duration = 4
+})
